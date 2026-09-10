@@ -1,0 +1,177 @@
+{
+  "project_name": "HK Bar POS (蘭桂坊 醉月居 / LKF Midnight Lounge)",
+  "app_type": "dashboard",
+  "theme": "dark",
+  "persona": "E1 Anti-AI Designer - Tactical High-Density HK Speakeasy POS",
+  "design_philosophy": {
+    "emotional_archetype": "ARCHETYPE 7 & ARCHETYPE 2 HYBRID (Neon Cyberpunk Meets Tactical Speed)",
+    "vibe": "Moody, high-contrast Hong Kong night bar aesthetics with neon red/amber glows, zinc slate surfaces, crisp physical tablet touch zones, and bilingual English + Traditional Chinese typography.",
+    "core_principles": [
+      "Tactical Speed: Large touch targets (min 48px to 64px), persistent right-hand order rail, zero nested modals for common actions.",
+      "Hong Kong Speakeasy Vibe: Obsidian black zinc surfaces (#090A0F, #12141D) with Electric Amber (#FF9F0A), Neon Crimson (#FF3B30), Jade Teal (#30D158), and Cyber Yellow (#FFD60A).",
+      "Dense Touch-Optimized Bento Grid: Mode B High-Density operational layout with instant visual feedback for table status, prep urgency, and print notifications.",
+      "Bilingual Identity: Every key label carries prominent English + Traditional Chinese (e.g. 'Table 04 · 04號檯', 'Fire Course · 催菜', 'Octopus · 八達通').",
+      "High Accessibility & Contrast: Minimum 4.5:1 text contrast ratio on dark surfaces, tactile 1px slate borders (#2C2F40) to define clear physical touch zones on tablet screens."
+    ]
+  },
+  "typography": {
+    "headings": {
+      "font_family": "Outfit, Cabinet Grotesk, sans-serif",
+      "weights": "font-bold (700), font-black (900)",
+      "letter_spacing": "tracking-tight",
+      "usage": "Screen titles, Table numbers, Key currency numbers (HK$), Large KPI metrics"
+    },
+    "body": {
+      "font_family": "Inter, system-ui, -apple-system, sans-serif",
+      "weights": "font-normal (400), font-medium (500), font-semibold (600)",
+      "usage": "Order item lists, customer details, KDS prep tickets, inventory lists"
+    },
+    "mono_data": {
+      "font_family": "JetBrains Mono, Roboto Mono, monospace",
+      "weights": "font-medium (500), font-bold (700)",
+      "usage": "Receipt totals, Bill #, Ticket timestamps, Print job monitor logs, Staff PIN keypad"
+    },
+    "scale": {
+      "h1_title": "text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight",
+      "h2_section": "text-xl sm:text-2xl font-bold",
+      "h3_sub": "text-lg font-semibold",
+      "card_head": "text-base font-bold",
+      "body_main": "text-sm sm:text-base font-normal",
+      "caption": "text-xs font-mono uppercase tracking-wider"
+    }
+  },
+  "colors": {
+    "background_base": "#090A0F",
+    "surface_card": "#12141D",
+    "surface_elevated": "#1A1D2B",
+    "border_subtle": "#282C3F",
+    "border_active": "#3F4563",
+    "brand_primary": {
+      "amber": "#FF9F0A",
+      "amber_hover": "#CC7F08",
+      "amber_glow": "rgba(255, 159, 10, 0.2)"
+    },
+    "status_colors": {
+      "table_free": {
+        "bg": "#0D2818",
+        "border": "#165B33",
+        "text": "#30D158",
+        "label": "Free · 空檯"
+      },
+      "table_occupied": {
+        "bg": "#3B1719",
+        "border": "#7A272C",
+        "text": "#FF453A",
+        "label": "Occupied · 入座"
+      },
+      "table_billing": {
+        "bg": "#3A2A08",
+        "border": "#855E0E",
+        "text": "#FFD60A",
+        "label": "Billing · 結帳中"
+      },
+      "table_reserved": {
+        "bg": "#1C1B33",
+        "border": "#433E85",
+        "text": "#BF5AF2",
+        "label": "Reserved · 留座"
+      }
+    },
+    "text": {
+      "primary": "#F2F4F8",
+      "secondary": "#A0A7BC",
+      "muted": "#687087",
+      "inverse": "#090A0F"
+    },
+    "accents": {
+      "crimson": "#FF3B30",
+      "jade": "#30D158",
+      "octopus_orange": "#FF8800",
+      "fps_blue": "#00A8FF",
+      "violet": "#AF52DE"
+    }
+  },
+  "layouts_and_grids": {
+    "tablet_shell": {
+      "layout": "Flex h-screen overflow-hidden bg-[#090A0F] text-[#F2F4F8]",
+      "left_sidebar": "w-20 md:w-24 bg-[#12141D] border-r border-[#282C3F] flex flex-col justify-between items-center py-4 z-30 shrink-0",
+      "center_stage": "flex-1 flex flex-col overflow-hidden bg-[#090A0F]",
+      "right_ticket_rail": "w-80 lg:w-96 bg-[#12141D] border-l border-[#282C3F] flex flex-col z-20 shrink-0"
+    },
+    "floorplan_grid": {
+      "container": "relative w-full h-full min-h-[500px] bg-[#0A0C12] rounded-xl border border-[#282C3F] overflow-hidden p-6",
+      "area_switcher": "flex items-center gap-2 bg-[#1A1D2B] p-1.5 rounded-lg border border-[#282C3F] mb-4"
+    },
+    "register_grid": {
+      "categories": "flex gap-2 overflow-x-auto pb-2 scrollbar-none",
+      "product_matrix": "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 overflow-y-auto p-4 max-h-[calc(100vh-180px)]"
+    },
+    "dashboard_bento": "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-6 overflow-y-auto"
+  },
+  "components": {
+    "pin_pad": {
+      "description": "Tactile 3x4 numeric keypad for quick staff clock-in / order unlock with employee selector and real-time shift status indicator.",
+      "data_testid": "pin-login-pad"
+    },
+    "floorplan_map": {
+      "description": "Dual-area floorplan canvas (Main Lounge Bar vs VIP Terrace) with drag-and-drop table positions, guest count pills, order time counter, and status colors.",
+      "data_testid": "floorplan-area-map"
+    },
+    "order_ticket_rail": {
+      "description": "Persistent right-side order sidebar containing table selection, seat selector, order items with modifier tags, course status (Hold/Fire), subtotal, 10% service charge, discount trigger, and giant action buttons for 'Fire Kitchen', 'Print Bill', and 'Pay'.",
+      "data_testid": "order-ticket-rail"
+    },
+    "kds_grid": {
+      "description": "Kitchen/Bar display screen with color-coded ticket urgency (Green < 5m, Amber 5-15m, Red > 15m), coarse item checks, course markers, and one-tap bump actions.",
+      "data_testid": "kds-prep-view"
+    },
+    "print_monitor": {
+      "description": "Real-time print queue status displaying routed jobs (Bar Drinks Printer, Kitchen Food Printer, Cashier Receipt), status badges (Sent, Printing, Failed), retry buttons, and simulated hardware alerts.",
+      "data_testid": "print-job-monitor"
+    },
+    "inventory_manager": {
+      "description": "Ingredient & bottle level stock matrix with low stock warnings, wastage logging modal, stock adjustment sliders, and supplier restock trigger.",
+      "data_testid": "inventory-management-panel"
+    },
+    "crm_loyalty": {
+      "description": "Member directory with phone lookup, Tier badges (LKF VIP, Gold, Diamond), reward point redemption, favorite drinks history, and store credit balance.",
+      "data_testid": "crm-loyalty-panel"
+    },
+    "menu_admin": {
+      "description": "CRUD interface for Categories, Subcategories, Items, Pricing (HK$), Variant Groups (Single/Double/Bottle/Mixer), Tax/Service flags, and Stock link.",
+      "data_testid": "menu-manager-panel"
+    },
+    "payment_modal": {
+      "description": "Split/Merge bill workflow supporting Cash with quick change calculator, HK Octopus Card tap simulation, FPS QR code scanner simulation, and Card Terminal fallback.",
+      "data_testid": "payment-checkout-modal"
+    },
+    "reports_analytics": {
+      "description": "Rich charts for Hourly Revenue (peak bar hours 10pm-2am), Category Mix, Payment Method Mix (Octopus vs Cash vs Card), Staff Sales Leaderboard, and Read-Only Cloud Owner Mirror Mode toggle.",
+      "data_testid": "reports-dashboard-panel"
+    },
+    "hr_clock": {
+      "description": "Staff clock in/out shift log, total hours worked today, hourly rate calculator, and shift report export.",
+      "data_testid": "hr-clock-panel"
+    }
+  },
+  "visual_enhancers": {
+    "neon_glows": "shadow-[0_0_15px_rgba(255,159,10,0.15)] for active selected elements",
+    "glass_morphism": "backdrop-blur-xl bg-[#12141D]/90 border border-[#282C3F]",
+    "card_borders": "1px solid #282C3F with hover:border-[#3F4563] transition-colors duration-150",
+    "touch_ripple": "active:scale-[0.98] transition-transform duration-100 ease-out select-none",
+    "status_pill": "px-2.5 py-1 rounded-full text-xs font-mono font-bold tracking-wide uppercase"
+  },
+  "image_urls": {
+    "hong_kong_skyline_night": "https://images.unsplash.com/photo-1604965405469-ecdbe8936495?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1OTN8MHwxfHNlYXJjaHwxfHxob25nJTIwa29uZyUyMGJhciUyMG5lb24lMjBjb2NrdGFpbHMlMjBkYXJrJTIwbW9vZHxlbnwwfHx8fDE3ODkwMTcxMTF8MA&ixlib=rb-4.1.0&q=85",
+    "speakeasy_bar_mood": "https://images.unsplash.com/photo-1517665555914-48b2c251f065?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1OTN8MHwxfHNlYXJjaHwyfHxob25nJTIwa29uZyUyMGJhciUyMG5lb24lMjBjb2NrdGFpbHMlMjBkYXJrJTIwbW9vZHxlbnwwfHx8fDE3ODkwMTcxMTF8MA&ixlib=rb-4.1.0&q=85"
+  },
+  "instructions_to_main_agent": [
+    "Ensure all React state hooks and API endpoints support instant local response for LAN tablet operation simulation.",
+    "Every page or component must feature clear bilingual titles/labels (e.g. 'Register · 點單', 'Floorplan · 檯號圖', 'KDS Prep · 廚房顯示', 'Inventory · 庫存', 'Reports · 報表').",
+    "Include mandatory data-testid attributes on all interactive controls (buttons, PIN pads, table cards, line items, payment triggers).",
+    "Use HK$ currency format everywhere (e.g., HK$ 128.00). Include standard HK 10% Service Charge toggle.",
+    "Support offline-first or mock fallback state for print queue retries, Octopus card taps, FPS QR generation, and Cloud Mirror syncing.",
+    "Use sonner for instant toast feedback (e.g., 'Ticket Fired to Bar Printer #1', 'Octopus Payment Received HK$248.00', 'Low Stock Alert: Hendricks Gin').",
+    "Ensure the design remains strictly Dark Mode with rich zinc slate gradients, neon status badges, and large touch-friendly buttons for tablet operation."
+  ]
+}

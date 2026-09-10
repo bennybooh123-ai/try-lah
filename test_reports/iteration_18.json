@@ -1,0 +1,28 @@
+{
+  "summary": "Full backend + frontend regression of HK Bar POS brownfield hardening (iter 18). Backend: 20/20 pytest tests pass covering all 7 gap features — auth (email + PIN with auto-clock-in), printer routing (bar/kitchen/receipt with failure+retry+alerts), inventory (variant+modifier deduction, restock, wastage with clamp at 0, low-stock alerts), card_terminal (402 without approval / 200 with terminal.provider=manual), split payment, order merge, cloud mirror (sync, status, direct cloud report with key, 401 on wrong key, proxy report), shifts/hours HR endpoint. Frontend: Login PIN 9999 works, nav-inventory/nav-printers/nav-cloud all visible, /inventory renders ingredient list with Restock/Wastage buttons and low badges, /printers renders 3 printer cards + alerts panel (active alert visible) + 15 print jobs, /cloud renders mirror URL/last-sync/status=ok, sync-now-btn triggers 'Aggregates pushed to cloud mirror' toast, revenue and inventory snapshot render. No console/page errors detected.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter18_hardening.py",
+    "/app/test_reports/pytest/iter18.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "orders.py is 785 lines — split into orders_core / payments / merge / delivery modules for maintainability",
+    "server.py is 749 lines — consider extracting shifts/reservations/reports routers to keep server.py as bootstrap only",
+    "mirror.push_to_cloud uses requests + asyncio.to_thread — httpx.AsyncClient would be more idiomatic in async FastAPI",
+    "printers._dispatch is a stub returning printed/failed based on online flag — clearly documented as SIMULATION but no unit tests when python-escpos gets wired; add abstraction seam test before real hardware",
+    "inventory deduct_ingredients_for_order swallows all errors in caller (try/except pass) — worth logging so silent stock drift is detectable",
+    "cloud_server.py stores full snapshots in db.snapshots forever with no TTL/rotation — will grow unbounded"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter18_hardening.py"
+  ],
+  "success_rate": {"backend": "100% (20/20)", "frontend": "100% (all 3 new pages + sync round-trip)"},
+  "test_credentials": "admin lunalunamoonshine@gmail.com/admin123/PIN 9999; PINs 1111/2222/3333/4444; Cloud X-API-Key hkpos-mirror-key-7f3a9c2e",
+  "seed_data_creation": "Created a few TEST_ ingredients inside tests (cleaned up in finally). Paid ~2 orders as part of card_terminal/receipt/inventory flows — these persist in DB (expected, matches use-case of testing paid pipeline).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend regression file: /app/backend/tests/test_iter18_hardening.py (20 tests, LoadScope-safe). Note pytest.ini forces -n 2 --dist loadscope; classes share workers. For frontend tests remember Login has Email + PIN tabs — must click [data-testid=tab-pin] first. Data-testids in new pages: inventory-management-panel, print-job-monitor, alerts-panel, cloud-mirror-panel, sync-now-btn, mirror-url, sync-status, mirror-revenue, terminal-panel, terminal-approve, terminal-approved, staff-hours-card, nav-inventory, nav-printers, nav-cloud.",
+  "rca of the issue": "N/A — no bugs found."
+}

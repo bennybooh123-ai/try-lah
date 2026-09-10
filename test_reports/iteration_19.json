@@ -1,0 +1,27 @@
+{
+  "summary": "Regression verification of iter 19 refactor round (server.py role middleware split into _role_from_request + _is_write_allowed, printers _group_lines_by_role, CartTicket TicketLine, ManagerPin helpers + 3-digit PIN, KDS PrepPanel, Floorplan useTableInteractions, shared useHappyHour, TableColorPalette, HappyHourEditor split, ComboEditor initialSlots, unused-import cleanup). Backend: created /app/backend/tests/test_iter19_refactor.py with 17 tests targeting the refactor surface — 16 passed, 1 skipped (printers fire flow skipped due to product-seed shape). Full existing regression suite re-run: 121/121 pass. New tests confirm: role middleware — kitchen POST /api/orders => 403, kitchen POST /api/products/{id}/eightysix != 403, FOH create order 200 but /pay => 403, assistant_manager /pay != 403 and DELETE /orders/{id} => 403 (owner-only require_owner dep), owner DELETE /orders/{id} 200. All 10 roster PINs login (666,888,9999,0000,111,222,333,555,777,999) — including 3-digit PINs — return correct role. /api/happy-hours/active returns 200 (auth). Frontend: 3-digit PIN 666 + GO logs in cleanly to /floorplan. Register renders TicketLine per line (cart-line-{i} with line-seat/hold/minus/plus/del testids), qty+ increments correctly, HH -20% badge shown on each line, HH banner (`Daily Happy Hour · -20% · ends 21:00`) live, product tiles show discounted price (HK$94.4 struck through HK$118) — useHappyHour hhFor/hhPrice verified. KDS shows kds-tab-board + kds-tab-prep (PrepPanel), station filters (all/kitchen/bar), QR-pending panel with Confirm & Fire, 9 active tickets each with Bump + 86 controls (route_ticket_lines refactor keeps drink vs food classification). Floorplan EDIT mode reveals per-table testids resize-F*/shape-F*/color-F*/btn-del-F* — useTableInteractions hook working. No console pageerrors, only expected pre-login 401 on /auth/me.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter19_refactor.py",
+    "/app/test_reports/pytest/iter19.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py now 879 lines — extracting shifts/reports/reservations to routers still pending (called out in iter18)",
+    "_ROLE_WRITE_ALLOW hardcodes special-case suffixes for kitchen (/eightysix, /restock, /wastage, /bump/) inside _is_write_allowed — consider moving these to a per-role suffix list next to the prefix tuple so the guard stays declarative",
+    "_role_from_request silently returns None on any jwt exception (expired/malformed) — logging at debug level would help audit-trail",
+    "orders.py DELETE relies on require_owner dependency (correct) but role middleware also lets manager/admin through since they're not in _ROLE_WRITE_ALLOW — defence-in-depth OK, but worth a comment noting the layering",
+    "printers.py _group_lines_by_role refactor: verify empty-lines path returns [] rather than None to avoid downstream .get errors (couldn't verify from black-box test)"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter19_refactor.py"
+  ],
+  "success_rate": {"backend": "100% (16/16 targeted refactor tests + 121/121 existing regression)", "frontend": "100% on all refactored surfaces observed"},
+  "test_credentials": "See /app/memory/test_credentials.md — used owner PIN 666 (Steph), FOH 777 (John), asst_mgr 222 (Mavis), kitchen 999 (Ayi), and all other roster PINs for auth-login test.",
+  "seed_data_creation": "Test creates transient orders (2 orders for role guard checks, 1 order for eightysix path). Owner DELETE cleans one of them; the rest persist as empty orders (expected). No product/table mutations.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Regression file: /app/backend/tests/test_iter19_refactor.py. Auth via POST /api/auth/pin-login {pin}. Cart line testids follow line-{seat|hold|minus|plus|del}-{index} on parent cart-line-{index}. KDS tabs: kds-tab-board / kds-tab-prep. Floor edit reveals resize/shape/color/btn-del prefixed testids. HH banner selector: [data-testid=\"hh-banner\"]. To test ManagerPin gate flow, first save-and-send an order (btn-save-order), reload as FOH (PIN 777), open the saved order and try line-del — modal should open (component present but not exercised in this run).",
+  "rca of the issue": "N/A — refactor round is clean, no bugs found."
+}
