@@ -999,6 +999,60 @@ async def line_action(oid: str, body: LineActionIn, user: dict = Depends(get_cur
     return {"order": serialize(await db.orders.find_one({"_id": o["_id"]}))}
 
 
+# ===================== APPLY MEMBER REWARD TO OPEN TAB =====================
+@router.post("/orders/{oid}/apply-reward")
+async def apply_reward(oid: str, body: dict, user: dict = Depends(get_current_user)):
+    """Apply a member's held %/cash/BXGY reward directly onto the open tab as an
+    order-level discount. Marks the reward redeemed (audited)."""
+    o = await db.orders.find_one({"_id": _oid(oid)})
+    if not o or o.get("status") == "paid":
+        raise HTTPException(400, "Cannot modify this order")
+    if not o.get("member_id"):
+        raise HTTPException(400, "Attach a member first")
+    m = await db.members.find_one({"_id": _oid(o["member_id"])})
+    if not m:
+        raise HTTPException(404, "Member not found")
+    code = body.get("reward_code")
+    rewards = m.get("rewards") or []
+    reward = next((r for r in rewards if r.get("code") == code and not r.get("redeemed")), None)
+    if not reward:
+        raise HTTPException(404, "Reward not found or already used")
+
+    kind = reward.get("type")
+    if kind == "percent":
+        disc_type, disc_val = "percent", float(reward.get("value", 0))
+    elif kind == "cash":
+        disc_type, disc_val = "cash", float(reward.get("value", 0))
+    elif kind == "bxgy":
+        # Free the cheapest `get_qty` line-units currently on the tab.
+        units = []
+        for l in o.get("lines", []):
+            units += [l.get("price", 0)] * int(l.get("qty", 1))
+        units.sort()
+        get_n = int(reward.get("get_qty", 0)) or 1
+        disc_type, disc_val = "cash", round(sum(units[:get_n]), 2)
+    else:
+        raise HTTPException(400, "Unsupported reward type")
+
+    combos = await _active_combos()
+    totals = _compute_totals(o.get("lines", []), disc_type, disc_val, o.get("service_charge_pct", 10), combos)
+    await db.orders.update_one({"_id": o["_id"]}, {"$set": {
+        "discount_type": disc_type, "discount_value": disc_val,
+        "applied_reward": {"code": code, "label": reward.get("label"), "type": kind},
+        **totals,
+    }})
+    for r in rewards:
+        if r.get("code") == code:
+            r["redeemed"] = True
+            r["redeemed_order"] = oid
+            r["redeemed_at"] = datetime.now(timezone.utc).isoformat()
+    await db.members.update_one({"_id": m["_id"]}, {"$set": {"rewards": rewards}})
+    await audit_event("reward_applied", {"order_id": oid, "member_id": o["member_id"],
+                      "member": m.get("name"), "reward": reward.get("label"),
+                      "discount_type": disc_type, "discount_value": disc_val}, user["name"])
+    return serialize(await db.orders.find_one({"_id": o["_id"]}))
+
+
 # ===================== QR SELF-ORDER CONFIRM =====================
 @router.get("/qr/pending")
 async def pending_qr_orders(user: dict = Depends(get_current_user)):

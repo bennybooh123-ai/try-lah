@@ -210,6 +210,46 @@ async def keg_pours(kid: str, days: int = 7, user: dict = Depends(get_current_us
     return {"days": out, "total_ml": total_ml, "total_pints": round(total_ml / 568, 1)}
 
 
+@router.get("/kegs/variance-report")
+async def variance_report(days: int = 7, user: dict = Depends(get_current_user)):
+    """Weekly overpour/spillage summary. Every keg's theoretical vs actual pours,
+    variance %, and estimated cost loss. Blown kegs within the window are highlighted."""
+    if user["role"] not in MANAGER_ROLES:
+        raise HTTPException(403, "Manager only")
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    docs = await db.kegs.find().sort("name", 1).to_list(500)
+    prods = {str(p["_id"]): p for p in await db.products.find().to_list(2000)}
+    pours = await _actual_pours_by_keg()
+    rows, total_loss, high = [], 0.0, 0
+    for d in docs:
+        m = _keg_metrics(d, pours.get(str(d["_id"]), 0))
+        blown = d.get("status") == "blown"
+        in_window = not blown or (d.get("blown_at", "") >= since)
+        if not in_window:
+            continue
+        est_loss = round((m["variance_pct"] / 100.0) * (d.get("cost") or 0), 2)
+        if m["variance_high"]:
+            high += 1
+            total_loss += max(0.0, est_loss)
+        rows.append({
+            "id": str(d["_id"]), "name": d.get("name"),
+            "product": (prods.get(d.get("product_id")) or {}).get("name", "—"),
+            "status": d.get("status"), "blown_at": d.get("blown_at"),
+            "size_ml": d.get("size_ml"), "cost": d.get("cost", 0),
+            "theoretical_pours": m["theoretical_pours"], "actual_pours": m["actual_pours"],
+            "variance_pct": m["variance_pct"], "variance_high": m["variance_high"],
+            "est_loss": est_loss,
+        })
+    rows.sort(key=lambda r: -abs(r["variance_pct"]))
+    return {
+        "days": days,
+        "kegs": rows,
+        "blown_count": sum(1 for r in rows if r["status"] == "blown"),
+        "high_variance_count": high,
+        "total_est_loss": round(total_loss, 2),
+    }
+
+
 @router.post("/kds/prep/bump")
 async def prep_bump_all(product_id: str, user: dict = Depends(get_current_user)):
     """Bump every fired-not-bumped line matching product_id across all open orders."""

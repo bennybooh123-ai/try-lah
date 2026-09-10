@@ -62,6 +62,38 @@ async def set_loyalty_config(body: LoyaltyConfigIn, user: dict = Depends(get_cur
     return await get_loyalty_config()
 
 
+# ---------------- Points & credit statement ----------------
+@router.get("/members/{mid}/statement")
+async def member_statement(mid: str, user: dict = Depends(get_current_user)):
+    m = await db.members.find_one({"_id": _oid(mid)})
+    if not m:
+        raise HTTPException(404, "Not found")
+    cfg = await get_loyalty_config()
+    mult = float((cfg.get("tier_multipliers") or {}).get(m.get("tier", "Regular"), 1.0))
+    ppd = float(cfg.get("points_per_hkd", 0.1))
+    paid = await db.orders.find({"member_id": mid, "status": "paid"}).sort("closed_at", -1).to_list(50)
+    earn_rows = [{
+        "order_id": str(o["_id"]), "date": o.get("closed_at"),
+        "total": o.get("total", 0),
+        "points_earned": int(o.get("total", 0) * ppd * mult),
+    } for o in paid]
+    return {
+        "member": {
+            "id": mid, "name": m.get("name"), "phone": m.get("phone"), "email": m.get("email"),
+            "tier": m.get("tier"), "join_date": m.get("join_date"), "last_visit": m.get("last_visit"),
+        },
+        "points": m.get("points", 0),
+        "credit_balance": round(m.get("credit_balance", 0.0), 2),
+        "lifetime_spend": round(m.get("lifetime_spend", 0.0), 2),
+        "visits": m.get("visits", 0),
+        "tier_multiplier": mult,
+        "points_per_hkd": ppd,
+        "earning_history": earn_rows,
+        "rewards": m.get("rewards") or [],
+        "generated_at": _now(),
+    }
+
+
 # ---------------- Whitelisted staff edit ----------------
 @router.patch("/members/{mid}")
 async def patch_member(mid: str, body: MemberPatchIn, user: dict = Depends(get_current_user)):

@@ -14,6 +14,7 @@ export default function Kegs() {
   const [products, setProducts] = useState([]);
   const [selKeg, setSelKeg] = useState(null);
   const [editor, setEditor] = useState(null); // {keg?} — open editor modal
+  const [showVar, setShowVar] = useState(false);
 
   const load = useCallback(async () => {
     const [k, p] = await Promise.all([api.get("/kegs"), api.get("/products")]);
@@ -48,6 +49,9 @@ export default function Kegs() {
       <div className="flex items-center gap-3 mb-4">
         <h1 className="font-display text-2xl font-black">Keg Watch · {kegs.length} taps</h1>
         <div className="ml-auto flex gap-2">
+          <button data-testid="btn-variance-report" onClick={() => setShowVar(true)} className="px-4 py-2 rounded-lg text-xs uppercase flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--rose)] text-[var(--rose)]">
+            <AlertTriangle size={14} /> Variance Report
+          </button>
           <button data-testid="btn-add-keg" onClick={() => setEditor({})} className="btn-neon px-4 py-2 rounded-lg text-xs uppercase flex items-center gap-2">
             <Plus size={14} /> Add Keg
           </button>
@@ -126,6 +130,58 @@ export default function Kegs() {
 
       {selKeg && <KegAnalyticsModal keg={selKeg} onClose={() => setSelKeg(null)} />}
       {editor && <KegEditor init={editor.keg} products={products} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); load(); }} />}
+      {showVar && <VarianceModal onClose={() => setShowVar(false)} />}
+    </div>
+  );
+}
+
+function VarianceModal({ onClose }) {
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState(null);
+  useEffect(() => {
+    api.get("/kegs/variance-report", { params: { days: 7 } }).then(r => setData(r.data)).catch(e => setErr(errMsg(e, "Manager only")));
+  }, []);
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl w-full max-w-3xl p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-2 mb-1">
+          <AlertTriangle size={18} className="text-[var(--rose)]" />
+          <div className="font-display font-black text-xl">Keg Variance Report</div>
+          <button onClick={onClose} className="ml-auto text-[var(--muted)] hover:text-white">×</button>
+        </div>
+        <div className="text-xs font-mono uppercase text-[var(--muted)] mb-4">Last 7 days · theoretical vs actual pours · red = overpour/spillage &gt;5%</div>
+        {err && <div className="text-[var(--rose)] text-sm py-6 text-center">{err}</div>}
+        {data && (
+          <>
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              <Kpi label="Blown (7d)" value={data.blown_count} color="#94A3B8" testid="var-blown" />
+              <Kpi label="High Variance" value={data.high_variance_count} color="#F43F5E" testid="var-high" />
+              <Kpi label="Est. Loss" value={fmtHKD(data.total_est_loss)} color="#FFB800" testid="var-loss" />
+            </div>
+            <table className="w-full text-xs font-mono">
+              <thead>
+                <tr className="text-[var(--muted)] uppercase text-[10px] border-b border-[var(--border)]">
+                  <th className="text-left py-1.5">Keg</th><th className="text-left">Beer</th>
+                  <th className="text-right">Theo</th><th className="text-right">Actual</th>
+                  <th className="text-right">Variance</th><th className="text-right">Est. Loss</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.kegs.map(k => (
+                  <tr key={k.id} data-testid={`var-row-${k.name}`} className="border-b border-[var(--border)]/50">
+                    <td className="py-1.5">{k.name}{k.status === "blown" ? " · BLOWN" : ""}</td>
+                    <td className="text-[var(--muted)]">{k.product}</td>
+                    <td className="text-right">{k.theoretical_pours}</td>
+                    <td className="text-right">{k.actual_pours}</td>
+                    <td className="text-right font-bold" style={{ color: k.variance_high ? "#F43F5E" : "#10B981" }}>{k.variance_pct}%</td>
+                    <td className="text-right text-[var(--amber)]">{fmtHKD(k.est_loss)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+      </div>
     </div>
   );
 }

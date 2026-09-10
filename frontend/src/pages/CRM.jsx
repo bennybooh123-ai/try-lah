@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Plus, Search, Crown, TrendingUp, Printer, Coins, Wallet, Gift, Pencil, Percent, Settings } from "lucide-react";
 import Receipt from "@/components/pos/Receipt";
 import ManagerPin from "@/components/pos/ManagerPin";
+import { openPrintableWindow } from "@/lib/printable";
 import { useAuth } from "@/context/AuthContext";
 import { errMsg } from "@/lib/errors";
 
@@ -100,6 +101,13 @@ export default function CRM() {
     catch (e) { toast.error(errMsg(e, "Save failed")); }
   };
 
+  const statement = async () => {
+    try {
+      const { data } = await api.get(`/members/${sel.member.id}/statement`);
+      openPrintableWindow(statementHtml(data), "statement");
+    } catch (e) { toast.error(errMsg(e, "Failed")); }
+  };
+
   const editConfig = () => {
     const ppd = parseFloat(prompt("Points per HK$1 (0.1 = 1pt/$10)", String(cfg?.points_per_hkd ?? 0.1)) || "0.1");
     const cost = parseInt(prompt("Points per coupon block", String(cfg?.coupon_points_cost ?? 100)) || "100", 10);
@@ -193,6 +201,7 @@ export default function CRM() {
                 <ActBtn testid="act-redeem" onClick={redeem} icon={Gift} label="Redeem → Credit" />
                 <ActBtn testid="act-discount" onClick={setDiscount} icon={Percent} label="Set Discount%" />
                 <ActBtn testid="act-grant" onClick={grant} icon={Gift} label="Grant Reward" />
+                <ActBtn testid="act-statement" onClick={statement} icon={Printer} label="Statement" />
               </div>
 
               {/* Rewards */}
@@ -281,3 +290,39 @@ const ActBtn = ({ icon: Icon, label, onClick, testid }) => (
     <Icon size={13} className="text-[var(--cyan)]" /> {label}
   </button>
 );
+
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function ts(iso) { return iso ? new Date(iso).toLocaleString("en-HK", { timeZone: "Asia/Hong_Kong", hour12: false }) : "—"; }
+
+function statementHtml(d) {
+  const m = d.member;
+  const earn = (d.earning_history || []).map(e => `<tr><td>${ts(e.date)}</td><td class="r">HK$ ${(e.total || 0).toFixed(2)}</td><td class="r">+${e.points_earned}</td></tr>`).join("")
+    || `<tr><td colspan="3" class="s">No point-earning visits yet</td></tr>`;
+  const rewards = (d.rewards || []).map(r => `<tr><td>${esc(r.label)}</td><td>${esc(r.type)}</td><td class="r">${r.redeemed ? "used" : "active"}</td></tr>`).join("")
+    || `<tr><td colspan="3" class="s">No rewards issued</td></tr>`;
+  return `<!doctype html><html><head><meta charset="utf-8"/><title>Member Statement</title>
+<style>body{font-family:'JetBrains Mono',monospace;font-size:12px;width:320px;margin:0;padding:14px;color:#000}
+h1{font-size:20px;text-align:center;margin:0;letter-spacing:.15em}
+h2{font-size:10px;text-align:center;margin:0 0 10px;letter-spacing:.25em;color:#666}
+h3{font-size:11px;text-transform:uppercase;letter-spacing:.1em;margin:12px 0 4px;color:#333}
+hr{border:0;border-top:1px dashed #000;margin:8px 0}
+table{width:100%;border-collapse:collapse}td{padding:2px 0;vertical-align:top}
+.r{text-align:right}.s{color:#666;font-size:10px}
+.kpi{display:flex;justify-content:space-between;font-weight:900;font-size:15px;margin:2px 0}
+@page{size:auto;margin:5mm}</style></head><body>
+<h1>HK · BAR</h1><h2>MEMBER STATEMENT</h2>
+<div class="s">${esc(m.name)} · ${esc(m.phone || "")}</div>
+<div class="s">Tier: ${esc(m.tier)} (x${d.tier_multiplier}) · Since ${ts(m.join_date)}</div>
+<div class="s">Last visit: ${ts(m.last_visit)}</div>
+<hr/>
+<div class="kpi"><span>POINTS</span><span>${d.points}</span></div>
+<div class="kpi"><span>CREDIT</span><span>HK$ ${d.credit_balance.toFixed(2)}</span></div>
+<div class="s">Lifetime spend HK$ ${d.lifetime_spend.toFixed(2)} · ${d.visits} visits · earn rate ${d.points_per_hkd} pt/HK$</div>
+<h3>Earning history</h3>
+<table><tr><td class="s">Date</td><td class="r s">Spend</td><td class="r s">Points</td></tr>${earn}</table>
+<h3>Rewards</h3>
+<table><tr><td class="s">Reward</td><td class="s">Type</td><td class="r s">Status</td></tr>${rewards}</table>
+<hr/><div class="s" style="text-align:center">Generated ${ts(d.generated_at)}</div>
+</body></html>`;
+}
+
